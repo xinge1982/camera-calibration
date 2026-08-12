@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0d12">
+  <title>Road Calibration · Camera Setup</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b10;
+      --panel: #11141b;
+      --panel-2: #171b24;
+      --line: rgba(255, 255, 255, .09);
+      --muted: #8991a2;
+      --text: #f4f6fb;
+      --cyan: #48d7f0;
+      --cyan-soft: rgba(72, 215, 240, .12);
+      --lime: #b9f451;
+      --warn: #ffbe55;
+      --danger: #ff6b6b;
+      --shadow: 0 20px 60px rgba(0, 0, 0, .35);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--bg); color: var(--text); }
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .app { min-height: 100vh; display: grid; grid-template-columns: 76px minmax(0, 1fr) 340px; }
+    .rail { border-right: 1px solid var(--line); padding: 24px 14px; display: flex; flex-direction: column; align-items: center; gap: 26px; background: #0b0e14; }
+    .brand { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--cyan); color: #041013; box-shadow: 0 0 30px rgba(72,215,240,.25); }
+    .brand svg { width: 24px; }
+    .rail-nav { display: flex; flex-direction: column; gap: 10px; }
+    .icon-btn { width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: #697184; display: grid; place-items: center; cursor: pointer; transition: .2s ease; }
+    .icon-btn:hover, .icon-btn.active { color: var(--cyan); background: var(--cyan-soft); }
+    .icon-btn svg { width: 20px; height: 20px; }
+    .rail .help { margin-top: auto; }
+
+    main { min-width: 0; padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 20px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .title-wrap { display: flex; align-items: center; gap: 14px; }
+    h1 { margin: 0; font-size: 21px; letter-spacing: -.02em; }
+    .crumb { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .live { display: inline-flex; align-items: center; gap: 7px; color: #c7cddd; font-size: 12px; border: 1px solid var(--line); padding: 8px 11px; border-radius: 999px; background: var(--panel); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px rgba(185,244,81,.8); }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+    .button { border: 1px solid var(--line); background: var(--panel-2); padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: 650; font-size: 13px; transition: .2s ease; }
+    .button:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
+    .button.primary { color: #061113; background: var(--cyan); border-color: var(--cyan); }
+
+    .viewer-card { min-height: 480px; flex: 1; position: relative; overflow: hidden; border-radius: 18px; border: 1px solid var(--line); background: #121722; box-shadow: var(--shadow); }
+    .viewer { position: absolute; inset: 0; user-select: none; touch-action: none; }
+    .road-scene { width: 100%; height: 100%; display: block; }
+    .viewer::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(7,10,16,.05), transparent 48%, rgba(7,10,16,.42)); }
+    .feed-meta { position: absolute; top: 18px; left: 18px; z-index: 4; display: flex; gap: 8px; }
+    .chip { border: 1px solid rgba(255,255,255,.13); background: rgba(8,11,17,.62); backdrop-filter: blur(12px); padding: 7px 10px; border-radius: 8px; font-size: 11px; color: #d7dbe5; }
+    .chip strong { color: #fff; }
+    .instruction { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); z-index: 4; display: flex; align-items: center; gap: 9px; padding: 9px 13px; border-radius: 10px; background: rgba(8,11,17,.74); backdrop-filter: blur(12px); font-size: 12px; border: 1px solid rgba(255,255,255,.12); white-space: nowrap; }
+    .kbd { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); border-radius: 5px; padding: 2px 6px; color: var(--muted); }
+    .canvas-svg { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; overflow: visible; }
+    .cal-area { fill: rgba(72,215,240,.10); stroke: var(--cyan); stroke-width: 1.6; stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
+    .guide { stroke: rgba(72,215,240,.52); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .guide.center { stroke: rgba(185,244,81,.7); stroke-dasharray: 5 5; }
+    .handle { fill: #091015; stroke: var(--cyan); stroke-width: 3; vector-effect: non-scaling-stroke; cursor: grab; filter: drop-shadow(0 0 7px rgba(72,215,240,.7)); }
+    .handle.dragging { cursor: grabbing; fill: var(--cyan); }
+    .point-label { fill: #071116; font-size: 10px; font-weight: 800; pointer-events: none; }
+    .bottom-hud { position: absolute; z-index: 4; bottom: 18px; left: 18px; right: 18px; display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
+    .legend { display: flex; gap: 14px; padding: 9px 11px; border-radius: 9px; background: rgba(8,11,17,.68); backdrop-filter: blur(10px); font-size: 11px; color: #c6ccda; }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .swatch { width: 9px; height: 9px; border-radius: 3px; background: var(--cyan); }
+    .swatch.lime { background: var(--lime); }
+    .zoom { pointer-events: auto; display: flex; border: 1px solid rgba(255,255,255,.12); border-radius: 9px; overflow: hidden; background: rgba(8,11,17,.72); }
+    .zoom button { width: 38px; height: 36px; border: 0; background: transparent; color: #dce1eb; cursor: pointer; }
+    .zoom button + button { border-left: 1px solid rgba(255,255,255,.1); }
+
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .step { display: flex; align-items: center; gap: 11px; padding: 13px 15px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; color: var(--muted); font-size: 12px; }
+    .step.active { border-color: rgba(72,215,240,.35); background: var(--cyan-soft); color: var(--text); }
+    .step.done { color: #cbd2df; }
+    .step-num { width: 25px; height: 25px; border-radius: 50%; display: grid; place-items: center; background: #202631; color: #aab1c0; font-weight: 750; }
+    .step.active .step-num { background: var(--cyan); color: #061113; }
+    .step.done .step-num { background: rgba(185,244,81,.15); color: var(--lime); }
+
+    aside { border-left: 1px solid var(--line); background: #0e1117; padding: 25px 22px; overflow-y: auto; }
+    .side-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 23px; }
+    .side-head h2 { margin: 0; font-size: 16px; }
+    .status-badge { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--warn); background: rgba(255,190,85,.1); border: 1px solid rgba(255,190,85,.25); padding: 6px 8px; border-radius: 7px; }
+    .section { padding: 20px 0; border-top: 1px solid var(--line); }
+    .section:first-of-type { border-top: 0; padding-top: 0; }
+    .section-title { color: #b9c0cd; font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .metric { background: var(--panel-2); border: 1px solid var(--line); border-radius: 11px; padding: 12px; }
+    .metric-label { color: var(--muted); font-size: 10px; margin-bottom: 7px; }
+    .metric-value { font-size: 17px; font-weight: 680; letter-spacing: -.02em; }
+    .metric-unit { font-size: 10px; color: var(--muted); margin-left: 3px; font-weight: 500; }
+    .field { margin-top: 14px; }
+    .field-row { display: flex; justify-content: space-between; color: #cfd4de; font-size: 12px; margin-bottom: 9px; }
+    .field-row output { color: var(--cyan); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--cyan); }
+    .quality { border-radius: 12px; background: linear-gradient(135deg, rgba(185,244,81,.09), rgba(72,215,240,.06)); border: 1px solid rgba(185,244,81,.18); padding: 14px; }
+    .quality-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+    .quality-score { font-size: 25px; font-weight: 760; color: var(--lime); }
+    .quality-score small { font-size: 11px; color: var(--muted); font-weight: 500; }
+    .quality-label { font-size: 11px; color: var(--lime); }
+    .bar { height: 5px; background: rgba(255,255,255,.08); border-radius: 10px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; width: 84%; background: linear-gradient(90deg, var(--cyan), var(--lime)); border-radius: inherit; transition: width .3s ease; }
+    .hint { display: flex; gap: 10px; color: var(--muted); line-height: 1.45; font-size: 11px; margin-top: 13px; }
+    .hint svg { width: 16px; flex: 0 0 16px; color: var(--warn); }
+    .side-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 4px; }
+    .side-actions .button.primary { grid-column: 1 / -1; padding: 12px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; z-index: 20; transform: translate(-50%, 24px); opacity: 0; padding: 11px 16px; color: #071115; font-size: 12px; font-weight: 700; border-radius: 10px; background: var(--lime); box-shadow: var(--shadow); transition: .25s ease; pointer-events: none; }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 64px minmax(0, 1fr); }
+      aside { grid-column: 2; border-left: 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+      .side-head, .side-actions { grid-column: 1 / -1; }
+    }
+    @media (max-width: 720px) {
+      .app { display: block; }
+      .rail { display: none; }
+      main { padding: 18px 14px; }
+      .topbar { align-items: flex-start; }
+      .top-actions .button:not(.primary), .live { display: none; }
+      .viewer-card { min-height: 430px; }
+      .instruction { top: auto; bottom: 66px; max-width: calc(100% - 32px); white-space: normal; }
+      .feed-meta { right: 14px; left: 14px; }
+      .feed-meta .chip:last-child { margin-left: auto; }
+      .steps { grid-template-columns: 1fr; }
+      aside { display: block; padding: 22px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="rail" aria-label="Primary navigation">
+      <div class="brand" aria-label="OptiCal"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8.4 12 4l8 4.4v7.2L12 20l-8-4.4V8.4Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></div>
+      <div class="rail-nav">
+        <button class="icon-btn" aria-label="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></button>
+        <button class="icon-btn active" aria-label="Camera calibration"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l1.5-2h7L17 8h3v10H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+        <button class="icon-btn" aria-label="Analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 19V9m7 10V5m7 14v-7"/></svg></button>
+        <button class="icon-btn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.7-1.7.9-1.9-2.1-2.1-1.9.9-1.7-.7-.7-2h-3l-.7 2-1.7.7-1.9-.9-2.1 2.1.9 1.9-.7 1.7-2 .7v3l2 .7.7 1.7-.9 1.9 2.1 2.1 1.9-.9 1.7.7.7 2h3l.7-2 1.7-.7 1.9.9 2.1-2.1-.9-1.9.7-1.7 2-.7Z"/></svg></button>
+      </div>
+      <button class="icon-btn help" aria-label="Help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 1 1 3.1 2.2c-.9.4-.9 1.1-.9 1.8M12 17h.01"/></svg></button>
+    </nav>
+
+    <main>
+      <header class="topbar">
+        <div class="title-wrap">
+          <div>
+            <h1>Road Calibration</h1>
+            <div class="crumb">Camera 02 · North entrance · Setup mode</div>
+          </div>
+          <span class="live"><i class="dot"></i> Live feed</span>
+        </div>
+        <div class="top-actions">
+          <button class="button" id="resetTop">Reset</button>
+          <button class="button primary" id="saveTop">Save calibration</button>
+        </div>
+      </header>
+
+      <section class="viewer-card" aria-label="Road camera calibration viewport">
+        <div class="viewer" id="viewer">
+          <svg class="road-scene" viewBox="0 0 1200 720" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Stylized live road camera feed">
+            <defs>
+              <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#243449"/><stop offset="1" stop-color="#a2a8a0"/></linearGradient>
+              <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#525a60"/><stop offset="1" stop-color="#1b2027"/></linearGradient>
+              <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
+              <pattern id="noise" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="2" cy="4" r=".7" fill="#fff" opacity=".12"/><circle cx="13" cy="11" r=".6" fill="#000" opacity=".2"/></pattern>
+            </defs>
+            <rect width="1200" height="720" fill="url(#sky)"/>
+            <circle cx="940" cy="130" r="70" fill="#d5d0aa" opacity=".2" filter="url(#blur)"/>
+            <path d="M0 270 90 215l66 42 81-83 96 88 86-45 78 51 76-104 89 93 96-60 92 64 98-71 68 70v110H0Z" fill="#39484b"/>
+            <path d="M0 324c96-46 162-36 244 0 88-54 173-53 258 0 99-49 193-51 283 2 85-42 169-47 415 6v82H0Z" fill="#172b2b"/>
+            <g fill="#0d211f"><circle cx="90" cy="294" r="56"/><circle cx="168" cy="290" r="70"/><circle cx="1018" cy="288" r="68"/><circle cx="1110" cy="300" r="76"/></g>
+            <path d="M450 286h300l450 434H0L450 286Z" fill="url(#road)"/>
+            <path d="M0 720 450 286h-43L0 613Z" fill="#9a9c92"/><path d="M1200 720 750 286h42l408 328Z" fill="#9a9c92"/>
+            <path d="M510 720 573 286h9l-20 434Z" fill="#e5e1c6" opacity=".78"/><path d="M690 720 627 286h-9l20 434Z" fill="#e5e1c6" opacity=".78"/>
+            <g fill="#efb45e"><path d="m347 720 104-434h8L399 720Z"/><path d="m853 720-104-434h-8l60 434Z"/></g>
+            <g fill="#dcd9c3" opacity=".8"><path d="m593 633 4-54h8l4 54Z"/><path d="m596 518 3-42h5l3 42Z"/><path d="m598 432 2-31h4l2 31Z"/><path d="m600 368 1-23h3l1 23Z"/></g>
+            <g transform="translate(782 387)"><path d="m0 42 14-31h70l17 31-7 41H9Z" fill="#a9b8c2"/><rect x="23" y="18" width="50" height="23" rx="4" fill="#253641"/><circle cx="23" cy="82" r="9" fill="#0a0c0e"/><circle cx="80" cy="82" r="9" fill="#0a0c0e"/><rect x="15" y="51" width="18" height="8" rx="3" fill="#f4dd93"/><rect x="69" y="51" width="18" height="8" rx="3" fill="#f4dd93"/></g>
+            <g transform="translate(350 330) scale(.62)"><path d="m0 42 14-31h70l17 31-7 41H9Z" fill="#586e75"/><rect x="23" y="18" width="50" height="23" rx="4" fill="#1f3039"/><circle cx="23" cy="82" r="9" fill="#0a0c0e"/><circle cx="80" cy="82" r="9" fill="#0a0c0e"/></g>
+            <rect width="1200" height="720" fill="url(#noise)" opacity=".35"/>
+          </svg>
+
+          <div class="feed-meta"><span class="chip"><strong>CAM 02</strong></span><span class="chip">1920 × 1080 · 30 FPS</span></div>
+          <div class="instruction"><span class="dot"></span> Drag each point onto the road boundary <span class="kbd">A–D</span></div>
+          <svg class="canvas-svg" id="overlay" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-label="Draggable calibration polygon">
+            <polygon id="polygon" class="cal-area" points="286,517 714,517 601,229 399,229"/>
+            <line id="crossA" class="guide" x1="286" y1="517" x2="601" y2="229"/>
+            <line id="crossB" class="guide" x1="714" y1="517" x2="399" y2="229"/>
+            <line id="centerLine" class="guide center" x1="500" y1="517" x2="500" y2="229"/>
+            <g class="control" data-index="0"><circle class="handle" cx="286" cy="517" r="13"/><text class="point-label" x="286" y="521" text-anchor="middle">A</text></g>
+            <g class="control" data-index="1"><circle class="handle" cx="714" cy="517" r="13"/><text class="point-label" x="714" y="521" text-anchor="middle">B</text></g>
+            <g class="control" data-index="2"><circle class="handle" cx="601" cy="229" r="13"/><text class="point-label" x="601" y="233" text-anchor="middle">C</text></g>
+            <g class="control" data-index="3"><circle class="handle" cx="399" cy="229" r="13"/><text class="point-label" x="399" y="233" text-anchor="middle">D</text></g>
+          </svg>
+          <div class="bottom-hud">
+            <div class="legend"><span><i class="swatch"></i> Road plane</span><span><i class="swatch lime"></i> Vanishing axis</span></div>
+            <div class="zoom"><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in">＋</button></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="steps" aria-label="Calibration progress">
+        <div class="step done"><span class="step-num">✓</span><span><strong>Camera position</strong><br>Source connected</span></div>
+        <div class="step active"><span class="step-num">2</span><span><strong>Road boundaries</strong><br>Align four control points</span></div>
+        <div class="step"><span class="step-num">3</span><span><strong>Validate & save</strong><br>Review calibration quality</span></div>
+      </div>
+    </main>
+
+    <aside>
+      <div class="side-head"><h2>Calibration data</h2><span class="status-badge" id="statusBadge">Adjusting</span></div>
+      <section class="section">
+        <div class="section-title">Camera orientation</div>
+        <div class="metric-grid">
+          <div class="metric"><div class="metric-label">Pitch</div><div class="metric-value" id="pitchValue">−18.4<span class="metric-unit">deg</span></div></div>
+          <div class="metric"><div class="metric-label">Yaw</div><div class="metric-value" id="yawValue">0.8<span class="metric-unit">deg</span></div></div>
+          <div class="metric"><div class="metric-label">Roll</div><div class="metric-value">0.2<span class="metric-unit">deg</span></div></div>
+          <div class="metric"><div class="metric-label">Height</div><div class="metric-value" id="heightValue">6.2<span class="metric-unit">m</span></div></div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-title">Road dimensions</div>
+        <label class="field"><span class="field-row"><span>Road width</span><output id="widthOutput">7.2 m</output></span><input id="roadWidth" type="range" min="3" max="16" value="7.2" step="0.1"></label>
+        <label class="field"><span class="field-row"><span>Reference distance</span><output id="distanceOutput">25 m</output></span><input id="referenceDistance" type="range" min="10" max="80" value="25" step="1"></label>
+      </section>
+      <section class="section">
+        <div class="section-title">Calibration quality</div>
+        <div class="quality">
+          <div class="quality-top"><div class="quality-score"><span id="qualityScore">84</span><small> / 100</small></div><span class="quality-label" id="qualityLabel">Good alignment</span></div>
+          <div class="bar"><span id="qualityBar"></span></div>
+          <div class="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01"/></svg><span id="qualityHint">Move the upper points closer to the visible lane edges to improve perspective accuracy.</span></div>
+        </div>
+      </section>
+      <div class="side-actions">
+        <button class="button" id="undoButton">Undo</button>
+        <button class="button" id="resetButton">Reset</button>
+        <button class="button primary" id="saveButton">Save calibration</button>
+      </div>
+    </aside>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite">Calibration saved</div>
+
+  <script>
+    const defaults = [
+      { x: 286, y: 517 }, { x: 714, y: 517 },
+      { x: 601, y: 229 }, { x: 399, y: 229 }
+    ];
+    let points = defaults.map(point => ({ ...point }));
+    let history = [];
+    let activeIndex = null;
+    let scale = 1;
+
+    const overlay = document.getElementById('overlay');
+    const scene = document.querySelector('.road-scene');
+    const polygon = document.getElementById('polygon');
+    const controls = [...document.querySelectorAll('.control')];
+    const qualityScore = document.getElementById('qualityScore');
+    const qualityBar = document.getElementById('qualityBar');
+    const qualityLabel = document.getElementById('qualityLabel');
+    const qualityHint = document.getElementById('qualityHint');
+
+    function render() {
+      polygon.setAttribute('points', points.map(p => `${p.x},${p.y}`).join(' '));
+      controls.forEach((control, index) => {
+        const point = points[index];
+        const circle = control.querySelector('circle');
+        const text = control.querySelector('text');
+        circle.setAttribute('cx', point.x); circle.setAttribute('cy', point.y);
+        text.setAttribute('x', point.x); text.setAttribute('y', point.y + 4);
+      });
+      setLine('crossA', points[0], points[2]);
+      setLine('crossB', points[1], points[3]);
+      setLine('centerLine', midpoint(points[0], points[1]), midpoint(points[2], points[3]));
+      updateMetrics();
+    }
+
+    function setLine(id, a, b) {
+      const line = document.getElementById(id);
+      line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+      line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    }
+    function midpoint(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+
+    function toSvgPoint(event) {
+      const rect = overlay.getBoundingClientRect();
+      return {
+        x: Math.max(24, Math.min(976, (event.clientX - rect.left) / rect.width * 1000)),
+        y: Math.max(70, Math.min(570, (event.clientY - rect.top) / rect.height * 600))
+      };
+    }
+
+    controls.forEach((control, index) => {
+      control.addEventListener('pointerdown', event => {
+        history.push(points.map(point => ({ ...point })));
+        if (history.length > 20) history.shift();
+        activeIndex = index;
+        control.querySelector('circle').classList.add('dragging');
+        control.setPointerCapture(event.pointerId);
+      });
+      control.addEventListener('pointermove', event => {
+        if (activeIndex !== index) return;
+        points[index] = toSvgPoint(event);
+        render();
+      });
+      const release = event => {
+        if (activeIndex === index) control.querySelector('circle').classList.remove('dragging');
+        activeIndex = null;
+        try { control.releasePointerCapture(event.pointerId); } catch (_) {}
+      };
+      control.addEventListener('pointerup', release);
+      control.addEventListener('pointercancel', release);
+    });
+
+    function updateMetrics() {
+      const lowerWidth = Math.abs(points[1].x - points[0].x);
+      const upperWidth = Math.abs(points[2].x - points[3].x);
+      const centerDrift = Math.abs(midpoint(points[0], points[1]).x - midpoint(points[2], points[3]).x);
+      const perspectiveRatio = upperWidth / Math.max(lowerWidth, 1);
+      const perspectivePenalty = Math.abs(perspectiveRatio - .47) * 54;
+      const symmetryPenalty = centerDrift * .08;
+      const heightPenalty = Math.abs((points[0].y + points[1].y) / 2 - 517) * .04;
+      const score = Math.round(Math.max(38, Math.min(98, 95 - perspectivePenalty - symmetryPenalty - heightPenalty)));
+      qualityScore.textContent = score;
+      qualityBar.style.width = `${score}%`;
+      qualityLabel.textContent = score >= 90 ? 'Excellent alignment' : score >= 76 ? 'Good alignment' : 'Needs adjustment';
+      qualityHint.textContent = score >= 90
+        ? 'Perspective and road boundaries are aligned. Calibration is ready to save.'
+        : score >= 76
+          ? 'Move the upper points closer to the visible lane edges to improve perspective accuracy.'
+          : 'Keep A–B on the near road edge and align C–D symmetrically near the horizon.';
+      const pitch = -16 - ((points[2].y + points[3].y) / 2 - 229) * .025;
+      const yaw = (midpoint(points[2], points[3]).x - 500) * .035;
+      document.getElementById('pitchValue').innerHTML = `${pitch.toFixed(1).replace('-', '−')}<span class="metric-unit">deg</span>`;
+      document.getElementById('yawValue').innerHTML = `${yaw.toFixed(1)}<span class="metric-unit">deg</span>`;
+    }
+
+    function reset() {
+      history.push(points.map(point => ({ ...point })));
+      points = defaults.map(point => ({ ...point }));
+      render();
+      notify('Calibration points reset');
+    }
+
+    function undo() {
+      if (!history.length) return notify('Nothing to undo');
+      points = history.pop();
+      render();
+      notify('Last change undone');
+    }
+
+    function save() {
+      const data = {
+        mode: 'road-calibration', camera: 'CAM 02', roadWidth: Number(document.getElementById('roadWidth').value),
+        referenceDistance: Number(document.getElementById('referenceDistance').value), points,
+        quality: Number(qualityScore.textContent), savedAt: new Date().toISOString()
+      };
+      localStorage.setItem('roadCalibration', JSON.stringify(data));
+      document.getElementById('statusBadge').textContent = 'Saved';
+      document.getElementById('statusBadge').style.color = 'var(--lime)';
+      notify('Calibration saved locally');
+    }
+
+    let toastTimer;
+    function notify(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message; toast.classList.add('show');
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    document.getElementById('roadWidth').addEventListener('input', event => document.getElementById('widthOutput').textContent = `${event.target.value} m`);
+    document.getElementById('referenceDistance').addEventListener('input', event => document.getElementById('distanceOutput').textContent = `${event.target.value} m`);
+    document.getElementById('undoButton').addEventListener('click', undo);
+    ['resetButton', 'resetTop'].forEach(id => document.getElementById(id).addEventListener('click', reset));
+    ['saveButton', 'saveTop'].forEach(id => document.getElementById(id).addEventListener('click', save));
+    document.getElementById('zoomIn').addEventListener('click', () => { scale = Math.min(1.18, scale + .06); scene.style.transform = `scale(${scale})`; });
+    document.getElementById('zoomOut').addEventListener('click', () => { scale = Math.max(1, scale - .06); scene.style.transform = `scale(${scale})`; });
+
+    const saved = localStorage.getItem('roadCalibration');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (Array.isArray(data.points) && data.points.length === 4) points = data.points;
+        if (data.roadWidth) document.getElementById('roadWidth').value = data.roadWidth;
+        if (data.referenceDistance) document.getElementById('referenceDistance').value = data.referenceDistance;
+        document.getElementById('widthOutput').textContent = `${document.getElementById('roadWidth').value} m`;
+        document.getElementById('distanceOutput').textContent = `${document.getElementById('referenceDistance').value} m`;
+      } catch (_) {}
+    }
+    render();
+  </script>
+</body>
+</html>
