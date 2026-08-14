@@ -16,37 +16,52 @@
     <div class="workspace">
       <aside class="photo-panel">
         <div class="panel-heading"><div><span class="eyebrow">LOCAL DATASET</span><h2>照片列表</h2></div><span class="count" id="photoCount">0</span></div>
-        <div class="photo-tools"><button class="button secondary full" id="pickFolderButton">选择本地 photos 文件夹</button><input type="file" id="folderInput" webkitdirectory directory multiple accept="image/*" hidden><p>页面会读取 <code>photos/manifest.json</code>，也可以直接选择本地照片目录。</p></div>
+        <div class="photo-tools"><button class="button secondary full" id="pickFolderButton">选择本地照片文件夹</button><input type="file" id="folderInput" webkitdirectory directory multiple accept="image/*" hidden><p>照片只在当前浏览器中读取，不会上传。请只选择同一相机、相同焦距、相同分辨率和相同裁剪方式的照片。</p></div>
+        <details class="usage-guide" open>
+          <summary>第一次使用？先看这里</summary>
+          <div class="guide-body">
+            <p><strong>这个工具做什么？</strong>它使用多张道路照片中已知尺寸的平面矩形，统一估计相机内参 <code>fx、fy、cx、cy、skew</code>。内参描述相机如何把三维空间投影到二维图片，是后续距离和尺寸测量的基础。</p>
+            <p><strong>开始前请准备：</strong>建议 5～10 张来自同一相机的照片；照片中要能找到真实宽度和纵向长度已知的道路矩形。若只有重复的前向平路视角，程序会自动固定主点、skew以及 <code>fx=fy</code>，只估计共同焦距。</p>
+            <ol>
+              <li>选择照片文件夹。</li>
+              <li>在每张照片中找到同一个真实道路矩形。</li>
+              <li>输入矩形的真实宽度和纵向长度。</li>
+              <li>拖动远左、远右、近左、近右四个点并完成本张标定。</li>
+              <li>完成至少 3 张后计算内参；5 张以上通常更稳定。</li>
+            </ol>
+            <p class="guide-warning"><strong>不要这样标：</strong>不能因为车道线碰到图片边缘，就把图片边缘当作现实中的远端截面。四个点必须对应现实中同一个矩形的四个真实角点。</p>
+          </div>
+        </details>
         <div class="photo-list" id="photoList" role="list"></div>
-        <div class="empty-state" id="emptyState"><span>＋</span><strong>尚未载入照片</strong><p>把照片放入 photos 目录并生成清单，或点击上方按钮选择目录。</p></div>
+        <div class="empty-state" id="emptyState"><span>＋</span><strong>从道路照片开始</strong><p>点击上方“选择本地照片文件夹”。加载后，逐张标记一个真实尺寸已知的道路矩形。</p></div>
         <div class="dataset-progress"><div class="progress-copy"><span>标定进度</span><strong id="progressText">0 / 0</strong></div><div class="progress-track"><i id="progressBar"></i></div><small>至少完成 3 张不同视角照片，才能计算统一内参。</small></div>
       </aside>
       <main class="calibration-main">
         <div class="context-bar"><div><span class="eyebrow">ACTIVE PHOTO</span><h2 id="activePhotoName">请选择一张照片</h2></div><div class="image-meta"><span id="imageDimensions">— × —</span><span id="activeStatus" class="status waiting">未标定</span></div></div>
         <section class="viewer-card" id="viewerCard">
-          <div class="viewer-empty" id="viewerEmpty"><div class="empty-icon">⌁</div><h3>选择照片开始标定</h3><p>在左侧照片列表中选择一张图片，然后拖动四个控制点。</p></div>
+          <div class="viewer-empty" id="viewerEmpty"><div class="empty-icon">⌁</div><h3>选择照片开始标定</h3><p>先从左侧载入照片，再把四个控制点拖到真实道路矩形的四个角点。</p></div>
           <img id="calibrationImage" alt="当前标定照片" draggable="false">
           <svg id="overlay" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-label="Road calibration points">
             <polygon id="roadPolygon" class="road-polygon" points="190,80 810,80 320,520 680,520"></polygon>
             <line id="leftBoundary" class="boundary" x1="190" y1="80" x2="320" y2="520"></line><line id="rightBoundary" class="boundary" x1="810" y1="80" x2="680" y2="520"></line>
-            <g class="control" data-index="0"><circle cx="190" cy="80" r="13"></circle><text x="190" y="84">左上</text></g>
-            <g class="control" data-index="1"><circle cx="810" cy="80" r="13"></circle><text x="810" y="84">右上</text></g>
-            <g class="control" data-index="2"><circle cx="320" cy="520" r="13"></circle><text x="320" y="524">左下</text></g>
-            <g class="control" data-index="3"><circle cx="680" cy="520" r="13"></circle><text x="680" y="524">右下</text></g>
+            <g class="control" data-index="0"><circle cx="190" cy="80" r="13"></circle><text x="190" y="84">远左</text></g>
+            <g class="control" data-index="1"><circle cx="810" cy="80" r="13"></circle><text x="810" y="84">远右</text></g>
+            <g class="control" data-index="2"><circle cx="320" cy="520" r="13"></circle><text x="320" y="524">近左</text></g>
+            <g class="control" data-index="3"><circle cx="680" cy="520" r="13"></circle><text x="680" y="524">近右</text></g>
           </svg>
-          <div class="viewer-tip">拖动控制点：上方两点对齐图像边缘，下方两点对齐道路边缘</div><div class="viewer-actions"><button class="mini-button" id="undoButton">撤销</button><button class="mini-button" id="resetPhotoButton">重置本图</button></div>
+          <div class="viewer-tip">远端点对应矩形较远的一条真实横边，近端点对应较近的一条真实横边；不要把图像边缘当成横边</div><div class="viewer-actions"><button class="mini-button" id="undoButton">撤销</button><button class="mini-button" id="resetPhotoButton">重置本图</button></div>
         </section>
         <div class="point-grid">
-          <div class="point-card cyan"><span>左上 · TL</span><strong><output id="point0">—</output></strong><small>左车道线 × 图像边缘</small></div><div class="point-card cyan"><span>右上 · TR</span><strong><output id="point1">—</output></strong><small>右车道线 × 图像边缘</small></div>
-          <div class="point-card lime"><span>左下 · BL</span><strong><output id="point2">—</output></strong><small>左车道线 × 道路边缘</small></div><div class="point-card lime"><span>右下 · BR</span><strong><output id="point3">—</output></strong><small>右车道线 × 道路边缘</small></div>
+          <div class="point-card cyan"><span>远端左 · FL</span><strong><output id="point0">—</output></strong><small>左边界 × 远端真实截面</small></div><div class="point-card cyan"><span>远端右 · FR</span><strong><output id="point1">—</output></strong><small>右边界 × 远端真实截面</small></div>
+          <div class="point-card lime"><span>近端左 · NL</span><strong><output id="point2">—</output></strong><small>左边界 × 近端真实截面</small></div><div class="point-card lime"><span>近端右 · NR</span><strong><output id="point3">—</output></strong><small>右边界 × 近端真实截面</small></div>
         </div>
       </main>
       <aside class="settings-panel">
         <div class="panel-heading"><div><span class="eyebrow">CALIBRATION</span><h2>当前照片</h2></div></div>
-        <section class="settings-section"><h3>道路参考尺寸</h3><label class="field"><span>道路宽度 <output id="roadWidthOutput">7.2 m</output></span><input id="roadWidthInput" type="range" min="3" max="20" step="0.1" value="7.2"></label><label class="field"><span>参考距离 <output id="distanceOutput">25 m</output></span><input id="distanceInput" type="range" min="5" max="100" step="1" value="25"></label></section>
+        <section class="settings-section"><h3>道路矩形真实尺寸</h3><p class="section-note">宽度是左右边界间距；纵向长度是近端截面到远端截面的真实距离。两者必须描述你标出的同一个矩形。</p><label class="field"><span>矩形宽度 <output id="roadWidthOutput">7.2 m</output></span><input id="roadWidthInput" type="range" min="3" max="20" step="0.1" value="7.2"></label><label class="field"><span>纵向长度 <output id="distanceOutput">25 m</output></span><input id="distanceInput" type="range" min="5" max="100" step="1" value="25"></label></section>
         <section class="settings-section"><h3>几何质量</h3><div class="quality-card"><div><strong id="qualityScore">—</strong><span>/ 100</span></div><span id="qualityLabel">等待标定</span><div class="quality-track"><i id="qualityBar"></i></div><p id="qualityHint">请选择照片并设置四个标定点。</p></div></section>
-        <button class="button primary full" id="completeButton" disabled>完成本张标定</button><p class="button-note">完成后仍可重新进入该照片修改，内参会在重新计算时更新。</p>
-        <section class="intrinsics-card"><div class="intrinsics-head"><div><span class="eyebrow">UNIFIED RESULT</span><h3>相机内参</h3></div><span id="resultBadge" class="status waiting">待计算</span></div><div class="matrix" aria-label="Camera intrinsic matrix"><span id="mFx">fx</span><span id="mSkew">0</span><span id="mCx">cx</span><span>0</span><span id="mFy">fy</span><span id="mCy">cy</span><span>0</span><span>0</span><span>1</span></div><div class="result-metrics"><div><span>RMS 重投影误差</span><strong id="rmsValue">—</strong></div><div><span>有效视图</span><strong id="viewCount">0</strong></div></div><button class="button secondary full" id="calculateButton" disabled>计算统一内参</button></section>
+        <button class="button primary full" id="completeButton" disabled>完成本张标定</button><p class="button-note">“完成”表示暂时确认这张照片的四点和真实尺寸。之后仍可回来修改，旧结果会自动失效。</p>
+        <section class="intrinsics-card"><div class="intrinsics-head"><div><span class="eyebrow">UNIFIED RESULT</span><h3>相机内参</h3></div><span id="resultBadge" class="status waiting">待计算</span></div><div class="matrix" aria-label="Camera intrinsic matrix"><span id="mFx">fx</span><span id="mSkew">skew</span><span id="mCx">cx</span><span>0</span><span id="mFy">fy</span><span id="mCy">cy</span><span>0</span><span>0</span><span>1</span></div><div class="result-metrics"><div><span>RMS 重投影误差</span><strong id="rmsValue">—</strong></div><div><span>有效视图</span><strong id="viewCount">0</strong></div><div><span>计算模式</span><strong id="diversityValue">—</strong></div><div><span>畸变模型</span><strong>暂未估计</strong></div></div><p class="result-help" id="resultHelp">RMS 越小，所有照片对同一组内参的解释越一致。它不是绝对精度保证；请同时检查逐张 RMS 和下面的警告。</p><ul class="warning-list" id="warningList"></ul><button class="button secondary full" id="calculateButton" disabled>检查并计算内参</button></section>
       </aside>
     </div>
   </div>

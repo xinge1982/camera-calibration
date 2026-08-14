@@ -1,0 +1,8 @@
+{
+  "name": "road-camera-calibration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/calibration.test.mjs"
+  }
+}

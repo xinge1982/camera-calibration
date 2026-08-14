@@ -3,5 +3,301 @@
 .workspace{height:calc(100vh - 76px);display:grid;grid-template-columns:260px minmax(620px,1fr) 320px}.photo-panel,.settings-panel{background:var(--panel);overflow-y:auto}.photo-panel{border-right:1px solid var(--line);display:flex;flex-direction:column}.settings-panel{border-left:1px solid var(--line);padding:22px}.panel-heading{justify-content:space-between;padding:22px}.panel-heading h2,.context-bar h2{font-size:16px;margin-top:4px}.eyebrow{font-size:9px;font-weight:800;letter-spacing:.13em;color:var(--cyan)}.count{min-width:28px;height:28px;padding:0 8px;display:grid;place-items:center;border-radius:8px;background:var(--panel2);color:#cfd5df;font-size:11px}.photo-tools{padding:0 14px 16px;border-bottom:1px solid var(--line)}.photo-tools p,.button-note{margin-top:9px;color:var(--muted);font-size:10px;line-height:1.5}.photo-tools code{color:#b8c0ce}.button{border:1px solid var(--line);border-radius:9px;padding:10px 14px;background:var(--panel2);color:var(--text);cursor:pointer;font-weight:700;font-size:11px;transition:.18s ease}.button:hover:not(:disabled){transform:translateY(-1px);border-color:rgba(255,255,255,.2)}.button:disabled{opacity:.38;cursor:not-allowed}.button.primary{background:var(--cyan);border-color:var(--cyan);color:#061216}.button.secondary{background:#191f29}.button.ghost{background:transparent}.button.full{width:100%}
 .photo-list{padding:10px;display:flex;flex-direction:column;gap:5px}.photo-item{width:100%;padding:8px;border:1px solid transparent;border-radius:10px;background:transparent;color:inherit;display:grid;grid-template-columns:54px minmax(0,1fr) 18px;align-items:center;gap:9px;text-align:left;cursor:pointer}.photo-item:hover{background:rgba(255,255,255,.035)}.photo-item.active{border-color:rgba(72,215,240,.35);background:rgba(72,215,240,.08)}.photo-thumb{width:54px;height:38px;object-fit:cover;border-radius:6px;background:#202632}.photo-copy{min-width:0}.photo-copy strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}.photo-copy small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.photo-check{width:16px;height:16px;display:grid;place-items:center;border:1px solid #3b4454;border-radius:50%;color:transparent;font-size:10px}.photo-item.done .photo-check{border-color:var(--lime);background:rgba(185,244,81,.16);color:var(--lime)}.empty-state{padding:42px 25px;text-align:center;color:var(--muted)}.empty-state>span{width:42px;height:42px;margin:0 auto 12px;display:grid;place-items:center;border:1px dashed #475064;border-radius:12px;font-size:20px}.empty-state strong{display:block;color:#c5cbd6;font-size:12px}.empty-state p{margin-top:7px;font-size:10px;line-height:1.55}.dataset-progress{margin-top:auto;padding:18px;border-top:1px solid var(--line)}.progress-copy{display:flex;justify-content:space-between;font-size:10px}.progress-copy strong{color:var(--lime)}.progress-track,.quality-track{height:5px;margin:9px 0;background:#252b36;border-radius:10px;overflow:hidden}.progress-track i,.quality-track i{display:block;width:0;height:100%;background:linear-gradient(90deg,var(--cyan),var(--lime));border-radius:inherit;transition:.25s}.dataset-progress small{color:var(--muted);font-size:9px;line-height:1.45}
 .calibration-main{padding:20px;min-width:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px}.context-bar{min-height:40px;justify-content:space-between}.image-meta{gap:9px;color:var(--muted);font-size:10px}.status{padding:5px 7px;border-radius:6px;font-size:9px;font-weight:800}.status.waiting{color:var(--warn);background:rgba(255,193,100,.1);border:1px solid rgba(255,193,100,.2)}.status.done{color:var(--lime);background:rgba(185,244,81,.09);border:1px solid rgba(185,244,81,.2)}.viewer-card{position:relative;min-height:480px;flex:1;overflow:hidden;border:1px solid var(--line);border-radius:15px;background:#10151d;box-shadow:var(--shadow)}#calibrationImage{position:absolute;width:100%;height:100%;object-fit:contain;background:#080b10;display:none;user-select:none}#overlay{position:absolute;inset:0;width:100%;height:100%;display:none;touch-action:none}.road-polygon{fill:rgba(72,215,240,.1);stroke:var(--cyan);stroke-width:1.5;stroke-dasharray:7 5;vector-effect:non-scaling-stroke}.boundary{stroke:var(--lime);stroke-width:2;vector-effect:non-scaling-stroke}.control circle{fill:#091116;stroke:var(--cyan);stroke-width:3;vector-effect:non-scaling-stroke;cursor:grab;filter:drop-shadow(0 0 6px rgba(72,215,240,.7))}.control.dragging circle{fill:var(--cyan);cursor:grabbing}.control text{fill:#061216;font-size:8px;font-weight:900;text-anchor:middle;pointer-events:none}.viewer-empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:var(--muted)}.empty-icon{width:52px;height:52px;margin:0 auto 14px;display:grid;place-items:center;border:1px solid #333c49;border-radius:15px;font-size:26px}.viewer-empty h3{font-size:14px;color:#d1d6df}.viewer-empty p{margin-top:7px;font-size:10px}.viewer-tip{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:none;padding:8px 11px;border:1px solid rgba(255,255,255,.11);border-radius:8px;background:rgba(7,10,14,.7);backdrop-filter:blur(10px);font-size:9px;white-space:nowrap}.viewer-actions{position:absolute;right:13px;bottom:13px;display:none;gap:6px}.mini-button{padding:7px 10px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:rgba(8,11,16,.72);color:#d8dde6;font-size:9px;cursor:pointer}.viewer-card.ready #calibrationImage,.viewer-card.ready #overlay,.viewer-card.ready .viewer-tip,.viewer-card.ready .viewer-actions{display:flex}.viewer-card.ready #calibrationImage,.viewer-card.ready #overlay{display:block}.viewer-card.ready .viewer-empty{display:none}.point-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.point-card{padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.point-card>span{font-size:9px;color:var(--muted)}.point-card strong{display:block;margin:5px 0 3px;font-size:12px;font-variant-numeric:tabular-nums}.point-card small{font-size:8px;color:#626c7d}.point-card.cyan strong{color:var(--cyan)}.point-card.lime strong{color:var(--lime)}
-.settings-panel>.panel-heading{padding:0 0 20px}.settings-section{padding:18px 0;border-top:1px solid var(--line)}.settings-section h3,.intrinsics-card h3{font-size:12px}.field{display:block;margin-top:16px}.field>span{display:flex;justify-content:space-between;color:#bac2cf;font-size:10px}.field output{color:var(--cyan);font-variant-numeric:tabular-nums}input[type=range]{width:100%;margin-top:9px;accent-color:var(--cyan)}.quality-card{margin-top:12px;padding:13px;border:1px solid rgba(185,244,81,.14);border-radius:10px;background:linear-gradient(135deg,rgba(185,244,81,.06),rgba(72,215,240,.04))}.quality-card>div:first-child{display:inline-flex;align-items:baseline}.quality-card strong{font-size:24px;color:var(--lime)}.quality-card span{font-size:9px;color:var(--muted)}.quality-card>span{float:right;margin-top:9px}.quality-card p{color:var(--muted);font-size:9px;line-height:1.45}.button-note{text-align:center}.intrinsics-card{margin-top:20px;padding:15px;border:1px solid rgba(72,215,240,.18);border-radius:12px;background:rgba(72,215,240,.045)}.intrinsics-head{justify-content:space-between}.matrix{margin:16px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px;border-left:2px solid #485365;border-right:2px solid #485365}.matrix span{min-height:27px;display:grid;place-items:center;border-radius:4px;background:rgba(255,255,255,.035);font-size:10px;font-variant-numeric:tabular-nums}.result-metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}.result-metrics div{padding:9px;border-radius:7px;background:rgba(255,255,255,.035)}.result-metrics span{display:block;color:var(--muted);font-size:8px}.result-metrics strong{display:block;margin-top:5px;font-size:11px}.toast{position:fixed;left:50%;bottom:24px;z-index:20;transform:translate(-50%,20px);opacity:0;padding:10px 15px;border-radius:9px;background:var(--lime);color:#081006;font-size:10px;font-weight:800;transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}
+.settings-panel>.panel-heading{padding:0 0 20px}.settings-section{padding:18px 0;border-top:1px solid var(--line)}.settings-section h3,.intrinsics-card h3{font-size:12px}.section-note{margin-top:9px;padding:9px;border-left:2px solid var(--cyan);background:rgba(72,215,240,.055);color:#aab5c5;font-size:9px;line-height:1.55}.field{display:block;margin-top:16px}.field>span{display:flex;justify-content:space-between;color:#bac2cf;font-size:10px}.field output{color:var(--cyan);font-variant-numeric:tabular-nums}input[type=range]{width:100%;margin-top:9px;accent-color:var(--cyan)}.quality-card{margin-top:12px;padding:13px;border:1px solid rgba(185,244,81,.14);border-radius:10px;background:linear-gradient(135deg,rgba(185,244,81,.06),rgba(72,215,240,.04))}.quality-card>div:first-child{display:inline-flex;align-items:baseline}.quality-card strong{font-size:24px;color:var(--lime)}.quality-card span{font-size:9px;color:var(--muted)}.quality-card>span{float:right;margin-top:9px}.quality-card p{color:var(--muted);font-size:9px;line-height:1.45}.button-note{text-align:center}.intrinsics-card{margin-top:20px;padding:15px;border:1px solid rgba(72,215,240,.18);border-radius:12px;background:rgba(72,215,240,.045)}.intrinsics-head{justify-content:space-between}.matrix{margin:16px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px;border-left:2px solid #485365;border-right:2px solid #485365}.matrix span{min-height:27px;display:grid;place-items:center;border-radius:4px;background:rgba(255,255,255,.035);font-size:10px;font-variant-numeric:tabular-nums}.result-metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}.result-metrics div{padding:9px;border-radius:7px;background:rgba(255,255,255,.035)}.result-metrics span{display:block;color:var(--muted);font-size:8px}.result-metrics strong{display:block;margin-top:5px;font-size:11px}.warning-list{display:grid;gap:6px;margin:0 0 12px;padding:0;list-style:none}.warning-list li{padding:8px 9px;border:1px solid rgba(255,193,100,.17);border-radius:7px;background:rgba(255,193,100,.055);color:#c9b58d;font-size:8px;line-height:1.45}.warning-list li::before{content:"!";display:inline-grid;place-items:center;width:13px;height:13px;margin-right:6px;border-radius:50%;background:rgba(255,193,100,.15);color:var(--warn);font-weight:900}.toast{position:fixed;left:50%;bottom:24px;z-index:20;transform:translate(-50%,20px);opacity:0;padding:10px 15px;border-radius:9px;background:var(--lime);color:#081006;font-size:10px;font-weight:800;transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-height:760px){.topbar{height:64px}.workspace{height:calc(100vh - 64px)}.viewer-card{min-height:380px}.settings-section{padding:12px 0}.intrinsics-card{margin-top:12px}.panel-heading{padding:15px 20px}}
+
+/* ---------- Font size overrides ---------- */
+
+/* 顶部标题 */
+.brand h1 {
+  font-size: 21px;
+}
+
+.brand p {
+  font-size: 14px;
+}
+
+/* 左右面板和当前照片标题 */
+.panel-heading h2,
+.context-bar h2 {
+  font-size: 20px;
+}
+
+/* LOCAL DATASET、CALIBRATION 等小标题 */
+.eyebrow {
+  font-size: 13px;
+}
+
+/* 顶部标定状态 */
+.session-state {
+  font-size: 15px;
+}
+
+/* 照片数量 */
+.count {
+  font-size: 15px;
+}
+
+/* 选择照片和其他普通按钮 */
+.button {
+  font-size: 15px;
+}
+
+/* 照片文件夹说明、按钮下方说明 */
+.photo-tools p,
+.button-note {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 左侧照片名称 */
+.photo-copy strong {
+  font-size: 15px;
+}
+
+/* 左侧“标定完成”、RMS等 */
+.photo-copy small {
+  font-size: 13px;
+}
+
+/* 尚未加载照片区域 */
+.empty-state strong {
+  font-size: 16px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 左下角标定进度 */
+.progress-copy {
+  font-size: 14px;
+}
+
+.dataset-progress small {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* 当前图片尺寸 */
+.image-meta {
+  font-size: 14px;
+}
+
+/* 已完成、调整中等状态标签 */
+.status {
+  font-size: 13px;
+}
+
+/* 图片中央空状态 */
+.viewer-empty h3 {
+  font-size: 18px;
+}
+
+.viewer-empty p {
+  font-size: 14px;
+}
+
+/* 图片顶部操作提示 */
+.viewer-tip {
+  max-width: calc(100% - 28px);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  white-space: normal;
+}
+
+/* 撤销、重置本图 */
+.mini-button {
+  font-size: 13px;
+}
+
+/* 图片中的远左、远右、近左、近右 */
+.control text {
+  font-size: 12px;
+}
+
+/* 四张坐标卡片 */
+.point-card > span {
+  font-size: 13px;
+}
+
+.point-card strong {
+  font-size: 16px;
+}
+
+.point-card small {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* 右侧区域标题 */
+.settings-section h3,
+.intrinsics-card h3 {
+  font-size: 16px;
+}
+
+/* 道路矩形真实尺寸说明 */
+.section-note {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* 矩形宽度和纵向长度 */
+.field > span {
+  font-size: 14px;
+}
+
+/* 几何质量标签与提示 */
+.quality-card span {
+  font-size: 13px;
+}
+
+.quality-card p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* 内参矩阵数字 */
+.matrix span {
+  font-size: 14px;
+}
+
+/* RMS、有效视图、计算模式 */
+.result-metrics span {
+  font-size: 12px;
+}
+
+.result-metrics strong {
+  font-size: 15px;
+}
+
+/* 结果警告 */
+.warning-list li {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* 底部弹出提示 */
+.toast {
+  font-size: 14px;
+}
+
+/* ======================================================
+   Right settings panel — larger and more readable
+   ====================================================== */
+
+/* 右侧栏从 320px 加宽到 380px */
+.workspace {
+  grid-template-columns: 260px minmax(620px, 1fr) 380px;
+}
+
+/* 右侧栏整体基础字号 */
+.settings-panel {
+  font-size: 16px;
+  padding: 24px;
+}
+
+/* CALIBRATION */
+.settings-panel .eyebrow {
+  font-size: 13px;
+}
+
+/* 当前照片 */
+.settings-panel .panel-heading h2 {
+  font-size: 22px;
+}
+
+/* 道路矩形真实尺寸、几何质量 */
+.settings-section h3,
+.intrinsics-card h3 {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+/* 道路矩形解释 */
+.settings-panel .section-note {
+  padding: 12px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* 矩形宽度、纵向长度 */
+.settings-panel .field > span {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* 右侧青色数值：7.2 m、25 m */
+.settings-panel .field output {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* 几何质量分数 98 */
+.settings-panel .quality-card strong {
+  font-size: 32px;
+}
+
+/* /100、几何良好 */
+.settings-panel .quality-card span {
+  font-size: 14px;
+}
+
+/* 几何质量下面的说明 */
+.settings-panel .quality-card p {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* 完成本张标定按钮 */
+.settings-panel .button {
+  min-height: 48px;
+  font-size: 16px;
+}
+
+/* “完成表示暂时确认……” */
+.settings-panel .button-note {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* 相机内参矩阵 */
+.settings-panel .matrix span {
+  min-height: 36px;
+  font-size: 15px;
+}
+
+/* RMS、有效视图、计算模式等标题 */
+.settings-panel .result-metrics span {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* RMS、有效视图等具体数值 */
+.settings-panel .result-metrics strong {
+  margin-top: 7px;
+  font-size: 16px;
+}
+
+/* 结果解释 */
+.settings-panel .result-help {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* 黄色警告 */
+.settings-panel .warning-list li {
+  padding: 11px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* 待计算、约束解、完整解 */
+.settings-panel .status {
+  font-size: 13px;
+  padding: 7px 9px;
+}

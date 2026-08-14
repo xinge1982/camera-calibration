@@ -1,7 +1,7 @@
-import { calibrateIntrinsics } from './calibration.js';
+import { calibrateIntrinsics, inspectView } from './calibration.js';
 
-const STORAGE_KEY = 'road-calibration-v2';
-const defaultPoints = (width, height) => [{ x: width * .18, y: 10 }, { x: width * .82, y: 10 }, { x: width * .35, y: height * .9 }, { x: width * .65, y: height * .9 }];
+const STORAGE_KEY = 'road-calibration-v3';
+const defaultPoints = (width, height) => [{ x: width * .43, y: height * .38 }, { x: width * .57, y: height * .38 }, { x: width * .22, y: height * .88 }, { x: width * .78, y: height * .88 }];
 const state = { photos: [], activeId: null, history: [], activePoint: null, result: null };
 const $ = id => document.getElementById(id);
 const elements = { list: $('photoList'), empty: $('emptyState'), viewer: $('viewerCard'), image: $('calibrationImage'), overlay: $('overlay'), polygon: $('roadPolygon'), controls: [...document.querySelectorAll('.control')] };
@@ -18,21 +18,24 @@ async function loadManifest() {
 function loadPhotos(incoming) {
   const saved = readSavedState();
   state.photos.forEach(photo => { if (photo.objectUrl) URL.revokeObjectURL(photo.src); });
-  state.photos = incoming.map(photo => ({ ...photo, width: 0, height: 0, points: null, roadWidth: 7.2, distance: 25, completed: false, ...(saved[photo.id] || {}) }));
+  state.photos = incoming.map(photo => ({ ...photo, width: 0, height: 0, points: null, roadWidth: 7.2, distance: 25, completed: false, ...(saved.photos?.[photo.id] || {}) }));
   state.activeId = state.photos[0]?.id || null;
-  state.result = null;
+  state.result = saved.result || null;
+  if (state.result?.perViewErrors) state.photos.filter(photo => photo.completed).forEach((photo, index) => { photo.calibrationError = state.result.perViewErrors[index]; });
   renderPhotoList(); updateProgress();
   if (state.activeId) activatePhoto(state.activeId);
 }
 
 function activatePhoto(id) {
-  saveCurrentState(); state.activeId = id; state.history = []; state.result = null;
+  saveCurrentState(); state.activeId = id; state.history = [];
   const photo = activePhoto(); if (!photo) return;
   elements.image.onload = () => {
+    const sizeChanged = photo.width > 0 && (photo.width !== elements.image.naturalWidth || photo.height !== elements.image.naturalHeight);
     photo.width = elements.image.naturalWidth; photo.height = elements.image.naturalHeight;
+    if (sizeChanged) { photo.points = null; photo.completed = false; clearCalibrationResult(); notify('图片尺寸已变化，旧标注已清除', true); }
     if (!photo.points || photo.points.length !== 4) photo.points = defaultPoints(photo.width, photo.height);
     elements.overlay.setAttribute('viewBox', `0 0 ${photo.width} ${photo.height}`);
-    layoutImage(); renderActive(); persist();
+    layoutImage(); renderActive(); if (state.result) renderResult(); persist();
   };
   elements.image.src = photo.src; elements.viewer.classList.add('ready');
   $('activePhotoName').textContent = photo.name; renderPhotoList();
@@ -61,18 +64,16 @@ function renderPhotoList() {
   elements.list.replaceChildren(...state.photos.map((photo, index) => {
     const button = document.createElement('button'); button.className = `photo-item ${photo.id === state.activeId ? 'active' : ''} ${photo.completed ? 'done' : ''}`; button.type = 'button'; button.setAttribute('role', 'listitem');
     const thumb = document.createElement('img'); thumb.className = 'photo-thumb'; thumb.src = photo.src; thumb.alt = '';
-    const copy = document.createElement('span'); copy.className = 'photo-copy'; const name = document.createElement('strong'); name.textContent = photo.name; const meta = document.createElement('small'); meta.textContent = photo.completed ? '标定完成' : `照片 ${index + 1}`; copy.append(name, meta);
+    const copy = document.createElement('span'); copy.className = 'photo-copy'; const name = document.createElement('strong'); name.textContent = photo.name; const meta = document.createElement('small'); meta.textContent = Number.isFinite(photo.calibrationError) ? `RMS ${photo.calibrationError.toFixed(2)} px` : photo.completed ? '标定完成' : `照片 ${index + 1}`; copy.append(name, meta);
     const check = document.createElement('span'); check.className = 'photo-check'; check.textContent = '✓'; button.append(thumb, copy, check); button.addEventListener('click', () => activatePhoto(photo.id)); return button;
   }));
 }
 
 function updateQuality(photo) {
-  const [tl, tr, bl, br] = photo.points; const topWidth = distance(tl, tr); const bottomWidth = distance(bl, br); const leftLength = distance(tl, bl); const rightLength = distance(tr, br);
-  const orderValid = tl.x < tr.x && bl.x < br.x && tl.y < bl.y && tr.y < br.y; const symmetry = Math.abs(leftLength - rightLength) / Math.max(leftLength, rightLength, 1); const expansion = bottomWidth / Math.max(topWidth, 1);
-  let score = Math.round(96 - symmetry * 42 - Math.abs(expansion - .65) * 25); if (!orderValid) score = 25; score = Math.max(20, Math.min(98, score));
-  $('qualityScore').textContent = score; $('qualityBar').style.width = `${score}%`; $('qualityLabel').textContent = score >= 88 ? '几何良好' : score >= 70 ? '可以完成' : '需要调整';
-  $('qualityHint').textContent = !orderValid ? '请保持左点在右点左侧、上点位于下点上方。' : score >= 88 ? '四点顺序和道路透视关系良好。' : '请让左右边界沿车道线对齐，并检查上下交点。';
-  $('completeButton').disabled = !orderValid || score < 60;
+  const inspection = inspectView({ ...photo, imageWidth: photo.width, imageHeight: photo.height });
+  $('qualityScore').textContent = inspection.score; $('qualityBar').style.width = `${inspection.score}%`; $('qualityLabel').textContent = inspection.valid ? inspection.score >= 88 ? '几何良好' : '可以完成' : '需要调整';
+  $('qualityHint').textContent = inspection.hint;
+  $('completeButton').disabled = !inspection.valid;
 }
 
 function updateProgress() {
@@ -81,25 +82,34 @@ function updateProgress() {
   $('calculateButton').disabled = completed < 3; $('viewCount').textContent = completed; $('exportButton').disabled = !state.result;
 }
 
-function completePhoto() { const photo = activePhoto(); if (!photo) return; photo.completed = true; state.result = null; persist(); renderActive(); renderPhotoList(); notify(`${photo.name} 标定已保存`); }
-function resetPhoto() { const photo = activePhoto(); if (!photo) return; state.history.push(clonePoints(photo.points)); photo.points = defaultPoints(photo.width, photo.height); photo.completed = false; state.result = null; renderActive(); renderPhotoList(); persist(); }
-function undo() { const photo = activePhoto(); if (!photo || !state.history.length) return notify('没有可撤销的操作'); photo.points = state.history.pop(); photo.completed = false; state.result = null; renderActive(); renderPhotoList(); persist(); }
+function completePhoto() { const photo = activePhoto(); if (!photo) return; photo.completed = true; clearCalibrationResult(); persist(); renderActive(); renderPhotoList(); notify(`${photo.name} 标定已保存`); }
+function resetPhoto() { const photo = activePhoto(); if (!photo) return; state.history.push(clonePoints(photo.points)); photo.points = defaultPoints(photo.width, photo.height); photo.completed = false; clearCalibrationResult(); renderActive(); renderPhotoList(); persist(); }
+function undo() { const photo = activePhoto(); if (!photo || !state.history.length) return notify('没有可撤销的操作'); photo.points = state.history.pop(); photo.completed = false; clearCalibrationResult(); renderActive(); renderPhotoList(); persist(); }
 
 function calculate() {
   try {
-    const views = state.photos.filter(photo => photo.completed).map(photo => ({ points: photo.points, width: photo.roadWidth, distance: photo.distance, imageWidth: photo.width, imageHeight: photo.height }));
-    state.result = calibrateIntrinsics(views); renderResult(); updateProgress(); persist(); notify('统一相机内参计算完成');
+    const completed = state.photos.filter(photo => photo.completed);
+    const views = completed.map(photo => ({ name: photo.name, points: photo.points, width: photo.roadWidth, distance: photo.distance, imageWidth: photo.width, imageHeight: photo.height }));
+    state.result = calibrateIntrinsics(views);
+    completed.forEach((photo, index) => { photo.calibrationError = state.result.perViewErrors[index]; });
+    renderResult(); renderPhotoList(); updateProgress(); persist(); notify('统一相机内参计算完成');
   } catch (error) { notify(error.message, true); }
 }
 
 function renderResult() {
   const result = state.result; if (!result) return;
-  $('mFx').textContent = result.fx.toFixed(2); $('mFy').textContent = result.fy.toFixed(2); $('mCx').textContent = result.cx.toFixed(2); $('mCy').textContent = result.cy.toFixed(2); $('mSkew').textContent = result.skew.toFixed(3); $('rmsValue').textContent = `${result.rms.toFixed(3)} px`; $('viewCount').textContent = result.views; $('resultBadge').textContent = '已计算'; $('resultBadge').className = 'status done';
+  const constrained = result.calibrationMode === 'constrained-forward-view';
+  $('mFx').textContent = result.fx.toFixed(2); $('mFy').textContent = result.fy.toFixed(2); $('mCx').textContent = result.cx.toFixed(2); $('mCy').textContent = result.cy.toFixed(2); $('mSkew').textContent = result.skew.toFixed(3); $('rmsValue').textContent = `${result.rms.toFixed(3)} px`; $('viewCount').textContent = result.views; $('resultBadge').textContent = constrained ? '约束解' : '完整解'; $('resultBadge').className = 'status done';
+  $('diversityValue').textContent = constrained ? '固定车载约束' : '完整多视图';
+  $('resultHelp').textContent = constrained ? '当前照片倾角重复，因此 fx=fy，只估计一个共同焦距；cx、cy固定为图像中心，skew固定为0。请把它视为有明确假设的约束结果。' : 'RMS 越小，所有照片对同一组内参的解释越一致。它不是绝对精度保证；请同时检查逐张 RMS 和下面的警告。';
+  $('warningList').replaceChildren(...result.warnings.map(message => { const item = document.createElement('li'); item.textContent = message; return item; }));
 }
 
 function exportResult() {
   if (!state.result) return;
-  const payload = { model: 'pinhole', imageSize: commonImageSize(), cameraMatrix: state.result.matrix, fx: state.result.fx, fy: state.result.fy, cx: state.result.cx, cy: state.result.cy, skew: state.result.skew, distortion: state.result.distortion, rmsReprojectionError: state.result.rms, calibratedViews: state.photos.filter(photo => photo.completed).map(photo => photo.name), generatedAt: new Date().toISOString() };
+  const calibrated = state.photos.filter(photo => photo.completed);
+  const constrainedAssumptions = state.result.calibrationMode === 'constrained-forward-view' ? ['cx=imageWidth/2', 'cy=imageHeight/2', 'skew=0', 'fx=fy'] : [];
+  const payload = { schemaVersion: 3, model: 'pinhole', calibrationMode: state.result.calibrationMode, assumptions: ['同一相机、焦距、分辨率和裁剪方式', '四点对应同一个真实道路矩形', '镜头畸变暂未估计', ...constrainedAssumptions], imageSize: commonImageSize(), cameraMatrix: state.result.matrix, fx: state.result.fx, fy: state.result.fy, cx: state.result.cx, cy: state.result.cy, skew: state.result.skew, distortion: state.result.distortion, rmsReprojectionError: state.result.rms, diversityRatio: state.result.diversityRatio, warnings: state.result.warnings, calibratedViews: calibrated.map((photo, index) => ({ name: photo.name, imageSize: { width: photo.width, height: photo.height }, roadWidthM: photo.roadWidth, referenceDistanceM: photo.distance, points: photo.points, rmsReprojectionError: state.result.perViewErrors[index] })), generatedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'camera-intrinsics.json'; link.click(); URL.revokeObjectURL(link.href); notify('相机内参 JSON 已导出');
 }
 
@@ -110,26 +120,27 @@ function handleFolder(files) {
 
 elements.controls.forEach((control, index) => {
   control.addEventListener('pointerdown', event => { const photo = activePhoto(); if (!photo) return; state.history.push(clonePoints(photo.points)); if (state.history.length > 30) state.history.shift(); state.activePoint = index; control.classList.add('dragging'); control.setPointerCapture(event.pointerId); });
-  control.addEventListener('pointermove', event => { if (state.activePoint !== index) return; const photo = activePhoto(); const rect = elements.overlay.getBoundingClientRect(); photo.points[index] = { x: clamp((event.clientX - rect.left) / rect.width * photo.width, 0, photo.width), y: clamp((event.clientY - rect.top) / rect.height * photo.height, 0, photo.height) }; photo.completed = false; state.result = null; renderActive(); renderPhotoList(); });
+  control.addEventListener('pointermove', event => { if (state.activePoint !== index) return; const photo = activePhoto(); const rect = elements.overlay.getBoundingClientRect(); photo.points[index] = { x: clamp((event.clientX - rect.left) / rect.width * photo.width, 0, photo.width), y: clamp((event.clientY - rect.top) / rect.height * photo.height, 0, photo.height) }; photo.completed = false; clearCalibrationResult(); renderActive(); renderPhotoList(); });
   const release = event => { if (state.activePoint === index) { state.activePoint = null; control.classList.remove('dragging'); persist(); } try { control.releasePointerCapture(event.pointerId); } catch (_) {} };
   control.addEventListener('pointerup', release); control.addEventListener('pointercancel', release);
 });
 
 $('pickFolderButton').addEventListener('click', () => $('folderInput').click()); $('folderInput').addEventListener('change', event => handleFolder(event.target.files)); $('undoButton').addEventListener('click', undo); $('resetPhotoButton').addEventListener('click', resetPhoto); $('completeButton').addEventListener('click', completePhoto); $('calculateButton').addEventListener('click', calculate); $('exportButton').addEventListener('click', exportResult);
-$('roadWidthInput').addEventListener('input', event => { const photo = activePhoto(); if (!photo) return; photo.roadWidth = Number(event.target.value); photo.completed = false; state.result = null; renderActive(); renderPhotoList(); persist(); });
-$('distanceInput').addEventListener('input', event => { const photo = activePhoto(); if (!photo) return; photo.distance = Number(event.target.value); photo.completed = false; state.result = null; renderActive(); renderPhotoList(); persist(); });
-$('resetAllButton').addEventListener('click', () => { if (!state.photos.length || !confirm('确定清除所有照片的标定结果吗？')) return; state.photos.forEach(photo => { photo.points = photo.width ? defaultPoints(photo.width, photo.height) : null; photo.completed = false; }); state.result = null; localStorage.removeItem(STORAGE_KEY); if (activePhoto()) renderActive(); renderPhotoList(); updateProgress(); notify('全部标定结果已重置'); });
+$('roadWidthInput').addEventListener('input', event => { const photo = activePhoto(); if (!photo) return; photo.roadWidth = Number(event.target.value); photo.completed = false; clearCalibrationResult(); renderActive(); renderPhotoList(); persist(); });
+$('distanceInput').addEventListener('input', event => { const photo = activePhoto(); if (!photo) return; photo.distance = Number(event.target.value); photo.completed = false; clearCalibrationResult(); renderActive(); renderPhotoList(); persist(); });
+$('resetAllButton').addEventListener('click', () => { if (!state.photos.length || !confirm('确定清除所有照片的标定结果吗？')) return; state.photos.forEach(photo => { photo.points = photo.width ? defaultPoints(photo.width, photo.height) : null; photo.completed = false; }); clearCalibrationResult(); localStorage.removeItem(STORAGE_KEY); if (activePhoto()) renderActive(); renderPhotoList(); updateProgress(); notify('全部标定结果已重置'); });
 window.addEventListener('resize', layoutImage);
 
 function activePhoto() { return state.photos.find(photo => photo.id === state.activeId); }
 function setLine(id, a, b) { const line = $(id); line.setAttribute('x1', a.x); line.setAttribute('y1', a.y); line.setAttribute('x2', b.x); line.setAttribute('y2', b.y); }
 function saveCurrentState() { persist(); }
 function persist() { const photos = {}; state.photos.forEach(({ id, points, width, height, roadWidth, distance, completed }) => { photos[id] = { points, width, height, roadWidth, distance, completed }; }); localStorage.setItem(STORAGE_KEY, JSON.stringify({ photos, result: state.result })); }
-function readSavedState() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').photos || {}; } catch (_) { return {}; } }
+function readSavedState() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (_) { return {}; } }
 function commonImageSize() { const photo = state.photos.find(item => item.completed); return photo ? { width: photo.width, height: photo.height } : null; }
 function clonePoints(points) { return points.map(point => ({ ...point })); }
 function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+function clearCalibrationResult() { state.result = null; state.photos.forEach(photo => { delete photo.calibrationError; }); $('resultBadge').textContent = '待计算'; $('resultBadge').className = 'status waiting'; $('warningList').replaceChildren(); $('diversityValue').textContent = '—'; $('resultHelp').textContent = 'RMS 越小，所有照片对同一组内参的解释越一致。它不是绝对精度保证；请同时检查逐张 RMS 和下面的警告。'; }
 let toastTimer; function notify(message, error = false) { const toast = $('toast'); toast.textContent = message; toast.style.background = error ? 'var(--danger)' : 'var(--lime)'; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2400); }
 
 loadManifest();
